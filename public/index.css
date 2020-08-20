@@ -1,0 +1,48 @@
+#call {
+  display: inline-flex;
+  background: #72ab76;
+  transition: background 1s;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 5px;
+  margin-top: 5px;
+}
+
+#call:hover {
+  background: #90d195;
+}
+
+#localVideo {
+  position: fixed;
+  right: 50px;
+  bottom: 50px;
+  width: 150px;
+  height: 150px;
+}
+
+#remoteVideo {
+  width: 300px;
+  height: 300px;
+}
+
+#userId {
+  display: none;
+}
+
+.user-item {
+  display: inline-flex;
+  cursor: pointer;
+  background: #416b75;
+  padding: 4px;
+  margin-bottom: 5px;
+  border-radius: 2px;
+  transition: background 1s;
+}
+
+.user-item:hover {
+  background: #578a96;
+}
+
+.user-item--touched {
+  background: #72a0ab;
+}

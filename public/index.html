@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="index.css" />
+    <title>Video calling</title>
+</head>
+<body>
+<div>
+    <div id="userId"></div>
+    <video id="remoteVideo" playsinline autoplay></video>
+    <video id="localVideo" playsinline autoplay muted></video>
+    
+
+    <div>
+        Users:
+    </div>
+    <div id="usersList">
+        No users connected
+    </div>
+
+    <div>
+        <div id="call">Call</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@2/dist/socket.io.js"></script>
+<script src="index.js"></script>
+</body>
+</html>
