@@ -47,7 +47,6 @@ const onRemotePeerIceCandidate = async (data) => {
 };
 
 const onUpdateUserList = ({ userIds }) => {
-  console.log('user list', userIds);
   const usersList = document.querySelector('#usersList');
   const usersToDisplay = userIds.filter(id => id !== socket.id);
 
