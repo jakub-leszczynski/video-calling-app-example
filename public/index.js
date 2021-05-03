@@ -1,23 +1,16 @@
-const callButton = document.querySelector('#call');
+// Creating the peer
+const peer = new RTCPeerConnection({
+  iceServers: [
+    {
+      urls: "stun:stun.stunprotocol.org"
+    }
+  ]
+});
 
-let selectedUser;
-
-const createPeerConnection = () => {
-  return new RTCPeerConnection({
-    iceServers: [
-      {
-        urls: "stun:stun.stunprotocol.org"
-      }
-    ]
-  });
-};
-
-let peer = createPeerConnection();
+// Connecting to socket
 const socket = io('http://localhost:3000');
 
-const onSocketConnect = async () => {
-  document.querySelector('#userId').innerHTML = `My user id is ${socket.id}`
-
+const onSocketConnected = () => {
   const constraints = {
     audio: true,
     video: true
@@ -25,26 +18,76 @@ const onSocketConnect = async () => {
   const stream = await navigator.mediaDevices.getUserMedia(constraints);
   document.querySelector('#localVideo').srcObject = stream;
   stream.getTracks().forEach(track => peer.addTrack(track, stream));
-  callButton.disabled = false;
+}
 
-  socket.emit('requestUserList');
-};
+// Handle call button
+callButton.addEventListener('click', async () => {
+  const localPeerOffer = await peer.createOffer();
+  await peer.setLocalDescription(new RTCSessionDescription(localPeerOffer));
+  
+  sendMediaOffer(localPeerOffer);
+});
 
-const onIceCandidateEvent = event => {
-  socket.emit('iceCandidate', {
-    to: selectedUser,
-    candidate: event.candidate,
-  });
-};
+// Create media offer
+socket.on('mediaOffer', async () => {
+  await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
+  const peerAnswer = await peer.createAnswer();
+  await peer.setLocalDescription(new RTCSessionDescription(peerAnswer));
 
-const onRemotePeerIceCandidate = async (data) => {
+  sendMediaAnswer(peerAnswer);
+});
+
+// Create media answer
+socket.on('mediaAnswer', async () => {
+  await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
+});
+
+// ICE layer
+peer.onicecandidate = (event) => {
+  sendIceCandidate(event);
+}
+
+socket.on('remotePeerIceCandidate', async (data) => {
   try {
     const candidate = new RTCIceCandidate(data.candidate);
     await peer.addIceCandidate(candidate);
   } catch (error) {
-    // Handle error
+    // Handle error, this will be rejected very often
   }
+})
+
+peer.addEventListener('track', (event) => {
+  const [stream] = event.streams;
+  document.querySelector('#remoteVideo').srcObject = stream;
+})
+
+
+let callButton = document.querySelector('#call');
+
+let selectedUser;
+
+const sendMediaAnswer = (peerAnswer) => {
+  socket.emit('mediaAnswer', {
+    answer: peerAnswer,
+    from: socket.id,
+    to: data.from
+  })
+}
+
+const sendMediaOffer = (localPeerOffer) => {
+  socket.emit('mediaOffer', {
+    offer: localPeerOffer,
+    from: socket.id,
+    to: selectedUser
+  });
 };
+
+const sendIceCandidate = (event) => {
+  socket.emit('iceCandidate', {
+    to: selectedUser,
+    candidate: event.candidate,
+  });
+}
 
 const onUpdateUserList = ({ userIds }) => {
   const usersList = document.querySelector('#usersList');
@@ -67,59 +110,11 @@ const onUpdateUserList = ({ userIds }) => {
     usersList.appendChild(userItem);
   });
 };
-
-const onMediaOffer = async (data) => {
-  try {
-    await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
-    const peerAnswer = await peer.createAnswer();
-    await peer.setLocalDescription(new RTCSessionDescription(peerAnswer));
-
-    socket.emit('mediaAnswer', {
-      answer: peerAnswer,
-      from: socket.id,
-      to: data.from
-    })
-  } catch (er) {
-    console.log(er)
-  }
-};
-
-const onMediaAnswer = async (data) => {
-  await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
-};
-
-const call = async () => {
-  callButton.disabled = true;
-
-  const localPeerOffer = await peer.createOffer();
-
-  await peer.setLocalDescription(new RTCSessionDescription(localPeerOffer));
-  socket.emit('mediaOffer', {
-    offer: localPeerOffer,
-    from: socket.id,
-    to: selectedUser
-  })
-};
-
-const gotRemoteStream = (event) => {
-  const [stream] = event.streams;
-  document.querySelector('#remoteVideo').srcObject = stream;
-};
-
-// To start, both sides need to get user media, create peer connection and add tracks to peer, so that ICE candidates are being sent out
-socket.on('connect', onSocketConnect);
-// Try adding remote candidate
-socket.on('remotePeerIceCandidate', onRemotePeerIceCandidate)
-// Update user list
 socket.on('update-user-list', onUpdateUserList);
-// Receive call from a user
-socket.on('mediaOffer', onMediaOffer);
-// Receive answer from callee
-socket.on('mediaAnswer', onMediaAnswer);
+socket.on('connect', handleSocketConnected);
 
-callButton.addEventListener('click', call);
+const handleSocketConnected = async () => {
+  onSocketConnected();
+  socket.emit('requestUserList');
+};
 
-// Update remote video element when connection between peers is established
-peer.addEventListener('track', gotRemoteStream);
-// Gets possible ICE candidate and sends it to other peer
-peer.onicecandidate = onIceCandidateEvent;
