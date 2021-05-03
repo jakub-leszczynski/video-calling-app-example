@@ -6,14 +6,12 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
-app.use(express.static(path.join(__dirname, '../public'))); // Add that later on
+app.use(express.static(path.join(__dirname, '../public')));
 
 let connectedUsers = [];
 
 io.on('connection', socket => {
-  console.log('A user connected');
   connectedUsers.push(socket.id);
-  socket.broadcast.emit('update-user-list', { userIds: connectedUsers })
 
   socket.on('disconnect', () => {
     connectedUsers = connectedUsers.filter(user => user !== socket.id)
@@ -39,6 +37,11 @@ io.on('connection', socket => {
       candidate: data.candidate
     })
   })
+
+  socket.on('requestUserList', () => {
+    socket.emit('update-user-list', { userIds: connectedUsers });
+    socket.broadcast.emit('update-user-list', { userIds: connectedUsers });
+  });
 });
 
 http.listen(3000, () => {

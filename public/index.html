@@ -8,9 +8,14 @@
 <body>
 <div>
     <div id="userId"></div>
-    <video id="remoteVideo" playsinline autoplay></video>
-    <video id="localVideo" playsinline autoplay muted></video>
-    
+    <div class="remote-video">
+        <div>Call:</div>
+        <video id="remoteVideo" playsinline autoplay></video>
+    </div>
+    <div class="local-video">
+        <div>Me:</div>
+        <video id="localVideo" playsinline autoplay muted></video>
+    </div>
 
     <div>
         Users:
