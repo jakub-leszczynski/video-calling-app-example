@@ -10,7 +10,7 @@ const peer = new RTCPeerConnection({
 // Connecting to socket
 const socket = io('http://localhost:3000');
 
-const onSocketConnected = () => {
+const onSocketConnected = async () => {
   const constraints = {
     audio: true,
     video: true
@@ -19,6 +19,8 @@ const onSocketConnected = () => {
   document.querySelector('#localVideo').srcObject = stream;
   stream.getTracks().forEach(track => peer.addTrack(track, stream));
 }
+
+let callButton = document.querySelector('#call');
 
 // Handle call button
 callButton.addEventListener('click', async () => {
@@ -29,16 +31,16 @@ callButton.addEventListener('click', async () => {
 });
 
 // Create media offer
-socket.on('mediaOffer', async () => {
+socket.on('mediaOffer', async (data) => {
   await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
   const peerAnswer = await peer.createAnswer();
   await peer.setLocalDescription(new RTCSessionDescription(peerAnswer));
 
-  sendMediaAnswer(peerAnswer);
+  sendMediaAnswer(peerAnswer, data);
 });
 
 // Create media answer
-socket.on('mediaAnswer', async () => {
+socket.on('mediaAnswer', async (data) => {
   await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
 });
 
@@ -61,52 +63,9 @@ peer.addEventListener('track', (event) => {
   document.querySelector('#remoteVideo').srcObject = stream;
 })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let callButton = document.querySelector('#call');
-
 let selectedUser;
 
-const sendMediaAnswer = (peerAnswer) => {
+const sendMediaAnswer = (peerAnswer, data) => {
   socket.emit('mediaAnswer', {
     answer: peerAnswer,
     from: socket.id,
@@ -151,10 +110,10 @@ const onUpdateUserList = ({ userIds }) => {
   });
 };
 socket.on('update-user-list', onUpdateUserList);
-socket.on('connect', handleSocketConnected);
 
 const handleSocketConnected = async () => {
   onSocketConnected();
   socket.emit('requestUserList');
 };
 
+socket.on('connect', handleSocketConnected);
